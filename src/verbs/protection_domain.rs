@@ -10,7 +10,7 @@ use super::{
 
 #[derive(Debug)]
 pub struct ProtectionDomain<'ctx> {
-    pd: NonNull<ibv_pd>,
+    pub(crate) pd: NonNull<ibv_pd>,
     _dev_ctx: PhantomData<&'ctx ()>,
 }
 

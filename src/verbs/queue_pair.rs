@@ -1,15 +1,44 @@
-use rdma_mummy_sys::{self, ibv_qp, ibv_qp_init_attr_ex};
-use std::ptr::NonNull;
+use rdma_mummy_sys::ibv_qp_type::IBV_QPT_RC;
+use rdma_mummy_sys::{self, ibv_create_qp, ibv_qp, ibv_qp_cap, ibv_qp_init_attr, ibv_srq};
+use std::os::raw::c_void;
+use std::ptr::null_mut;
+use std::{marker::PhantomData, ptr::NonNull};
 
-use super::protection_domain::ProtectionDomain;
+use super::{completion::CompletionQueue, protection_domain::ProtectionDomain};
 
-pub struct QueuePair<'pd> {
+// pd, cq
+pub struct QueuePair<'a> {
     pub(crate) qp: NonNull<ibv_qp>,
-    _pd: &'pd ProtectionDomain<'pd>,
+    _phantom: PhantomData<&'a ()>,
 }
 
-impl QueuePair<'_> {
-    pub(crate) fn new<'pd>(pd: &'pd ProtectionDomain) -> Self {
-        todo!()
+pub struct QueuePairBuilder<'a> {
+    pd: &'a ProtectionDomain<'a>,
+    init_attr: ibv_qp_init_attr,
+    _phantom: PhantomData<&'a ()>,
+}
+
+impl<'a> QueuePairBuilder<'a> {
+    pub fn new(pd: &'a ProtectionDomain, send_cq: &'a CompletionQueue, recv_cq: &'a CompletionQueue) -> Self {
+        // set default params for init_attr
+        QueuePairBuilder {
+            pd,
+            init_attr: ibv_qp_init_attr {
+                qp_context: null_mut::<c_void>(),
+                send_cq: send_cq.cq.as_ptr(),
+                recv_cq: recv_cq.cq.as_ptr(),
+                srq: null_mut::<ibv_srq>(),
+                cap: ibv_qp_cap {
+                    max_send_wr: 16,
+                    max_recv_wr: 16,
+                    max_send_sge: 1,
+                    max_recv_sge: 1,
+                    max_inline_data: 0,
+                },
+                qp_type: IBV_QPT_RC,
+                sq_sig_all: 0,
+            },
+            _phantom: PhantomData,
+        }
     }
 }
