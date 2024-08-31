@@ -31,7 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
 
         println!("qp pointer is {:?}", qp);
-        // modify QP to INIT state
+        // modify QP: RESET -> INIT
+        // IBV_QP_STATE, IBV_QP_PKEY_INDEX, IBV_QP_PORT, IBV_QP_ACCESS_FLAGS
         let mut attr = QueuePairAttribute::new();
         attr.setup_state(QueuePairState::Init)
             .setup_pkey_index(0)
@@ -39,7 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .setup_access_flags(ibv_access_flags::IBV_ACCESS_REMOTE_WRITE);
         qp.modify(&attr).unwrap();
 
-        // modify QP to RTR state
+        // modify QP: INIT -> RTR
+        // IBV_QP_STATE, IBV_QP_AV, IBV_QP_PATH_MTU, IBV_QP_DEST_QPN, IBV_QP_RQ_PSN, IBV_QP_MAX_DEST_RD_ATOMIC, IBV_QP_MIN_RNR_TIMER
         let mut attr = QueuePairAttribute::new();
         attr.setup_state(QueuePairState::ReadyToReceive)
             .setup_path_mtu(Mtu::Mtu1024)
@@ -59,6 +61,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .setup_grh_hop_limit(64);
         attr.setup_address_vector(&ah_attr);
+        qp.modify(&attr).unwrap();
+
+        // modify QP: RTR -> RTS
+        // IBV_QP_STATE, IBV_QP_SQ_PSN, IBV_QP_TIMEOUT, IBV_QP_RETRY_CNT, IBV_QP_RNR_RETRY, IBV_QP_MAX_QP_RD_ATOMIC
+        let mut attr = QueuePairAttribute::new();
+        attr.setup_state(QueuePairState::ReadyToSend)
+            .setup_sq_psn(1)
+            .setup_timeout(0)
+            .setup_retry_cnt(3)
+            .setup_rnr_retry(0)
+            .setup_max_read_atomic(0);
         qp.modify(&attr).unwrap();
     }
 
